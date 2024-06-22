@@ -1,0 +1,29 @@
+input CreateGroup {
+	"""
+	The user IDs that are part this Group
+	"""
+	userIds: [String!]!
+	
+	"""
+	The group IDs that are part of this Group
+	"""
+	groupIds: [String!]!
+}
+
+type Group {
+    id: String!
+    userIds: [String!]!
+    groupIds: [String!]!
+}
+
+"""TODO Remove"""
+type Query {
+    getGroups: [Group!]!
+}
+
+type Mutation {
+    """
+    Create a group that can be used for permissions
+    """
+    createGroup(input: CreateGroup!): Group!
+}
