@@ -1,22 +1,35 @@
 import { Tweet } from 'src/graphql.schema';
-import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity()
 export class Permission {
-  @PrimaryColumn()
-  @OneToOne(() => Tweet)
-  @JoinColumn()
-  tweetId: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @Column()
+  @Column({
+    default: true,
+  })
   inheritViewPermissions: boolean;
 
-  @Column()
+  @Column({
+    default: true,
+  })
   inheritEditPermissions: boolean;
 
-  @Column('simple-array')
+  @Column('simple-array', {
+    default: [],
+  })
   viewPermissions: String[];
 
-  @Column('simple-array')
+  @Column('simple-array', {
+    default: [],
+  })
   editPermissions: String[];
 }

@@ -2,10 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  PrimaryColumn,
+  JoinColumn,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Tweet as GraphQLTweet, TweetCategory } from 'src/graphql.schema';
+import { Permission } from 'src/permissions/permission.entity';
 
 @Entity()
 export class Tweet implements GraphQLTweet {
@@ -21,7 +23,9 @@ export class Tweet implements GraphQLTweet {
   @Column()
   content: string;
 
-  @Column('simple-array')
+  @Column('simple-array', {
+    default: [],
+  })
   hashtags: string[];
 
   @Column({
@@ -36,6 +40,14 @@ export class Tweet implements GraphQLTweet {
   })
   category: TweetCategory;
 
-  @Column()
+  @Column({
+    nullable: true,
+  })
   location: string;
+
+  @OneToOne(() => Permission, {
+    cascade: true,
+  })
+  @JoinColumn()
+  tweetId: Permission;
 }

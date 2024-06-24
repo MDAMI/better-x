@@ -4,10 +4,13 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { DateTimeResolver } from 'graphql-scalars';
 import { GroupsModule } from './groups/groups.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TweetsModule } from './tweets/tweets.module';
+import { DataSource } from 'typeorm';
 
 @Module({
   imports: [
     GroupsModule,
+    TweetsModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       typePaths: ['./**/*.graphql'],
@@ -25,4 +28,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     }),
   ],
 })
-export class AppModule {}
+export class AppModule {
+  constructor(private dataSource: DataSource) {}
+}
