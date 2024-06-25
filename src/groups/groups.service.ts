@@ -66,6 +66,53 @@ export class GroupsService {
     return groupResponse;
   }
 
+  async containsUserId(searchUser: string, userIds: string[]) {
+    const userEntities: GroupEntity[] =
+      await this.groupsRepository.manager.query(
+        `
+        SELECT *
+          FROM postgres.public.user u
+         WHERE u.id = ANY($1::VARCHAR[])
+           AND u.type = 'User'
+      `,
+        [userIds],
+      );
+
+    const users: string[] = userEntities.map((user) => user.id);
+
+    if (users.includes(searchUser)) {
+      return true;
+    }
+
+    const childUsers: string[] = await this.groupsRepository.manager
+      .query(
+        `
+      WITH RECURSIVE grouptree (groupId, link) AS (
+        SELECT u.id, gl."userId_2"
+          FROM postgres.public.user u
+          JOIN user_group_ids_user gl ON u.id = gl."userId_1"
+         WHERE u.id = ANY($1::VARCHAR[])
+           AND u.type = 'Group'
+         UNION ALL
+        SELECT g.groupid, gl2."userId_2"
+          FROM grouptree g
+          JOIN user_group_ids_user gl2 ON g.link = gl2."userId_1"
+      )
+      SELECT ul."userId_2" AS id
+        FROM grouptree gt
+        JOIN user_user_ids_user ul ON ul."userId_1" = gt.link
+      `,
+        [userIds],
+      )
+      .then((userArray: any[]) => userArray.map((user) => user.id));
+
+    if (childUsers.includes(searchUser)) {
+      return true;
+    }
+
+    return false;
+  }
+
   toResponse(entity: GroupEntity): GroupResponse {
     return {
       id: entity.id,

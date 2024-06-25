@@ -18,7 +18,10 @@ export class TweetsResolver {
     @Args('page') page: number,
   ): Promise<PaginatedTweet> {
     //TODO Paginate the tweets
-    return new PaginatedTweet();
+    const tweets = this.tweetsService.findAll();
+    const paginatedTweets = new PaginatedTweet();
+    paginatedTweets.nodes = await tweets;
+    return paginatedTweets;
   }
 
   @Query()
@@ -27,7 +30,7 @@ export class TweetsResolver {
     @Args('tweetId') tweetId: string,
   ): Promise<boolean> {
     //TODO Can Edit
-    return false;
+    return this.tweetsService.canEditTweet(userId, tweetId);
   }
 
   @Mutation()
@@ -40,7 +43,6 @@ export class TweetsResolver {
     @Args('tweetId') tweetId: string,
     @Args('input') input: UpdateTweetPermissions,
   ): Promise<boolean> {
-    //TODO Permission
-    return false;
+    return this.tweetsService.updateTweetPermissions(tweetId, input);
   }
 }

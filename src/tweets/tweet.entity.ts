@@ -3,13 +3,19 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
-  OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
+  Tree,
+  TreeChildren,
+  TreeParent,
 } from 'typeorm';
 import { Tweet as GraphQLTweet, TweetCategory } from 'src/graphql.schema';
 import { Permission } from 'src/permissions/permission.entity';
 
 @Entity()
+@Tree('closure-table', {
+  closureTableName: 'tweetClosure',
+})
 export class Tweet implements GraphQLTweet {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -33,6 +39,12 @@ export class Tweet implements GraphQLTweet {
   })
   parentTweetId: string;
 
+  @TreeParent()
+  parentTweet: Tweet;
+
+  @TreeChildren()
+  childTweets: Tweet[];
+
   @Column({
     type: 'enum',
     enum: TweetCategory,
@@ -45,9 +57,10 @@ export class Tweet implements GraphQLTweet {
   })
   location: string;
 
-  @OneToOne(() => Permission, {
+  @ManyToOne(() => Permission, {
     cascade: true,
+    eager: true,
   })
   @JoinColumn()
-  tweetId: Permission;
+  permission: Permission;
 }

@@ -63,7 +63,7 @@ export abstract class IMutation {
 
     abstract createTweet(input: CreateTweet): Tweet | Promise<Tweet>;
 
-    abstract updateTweetPermissions(input: UpdateTweetPermissions): boolean | Promise<boolean>;
+    abstract updateTweetPermissions(tweetId: string, input: UpdateTweetPermissions): boolean | Promise<boolean>;
 }
 
 export class Tweet {
