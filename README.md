@@ -1,30 +1,4 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
-
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+# Better-X
 
 ## Installation
 
@@ -32,9 +6,14 @@
 $ npm install
 ```
 
+Ensure Docker is installed on your system.
+
 ## Running the app
 
 ```bash
+# First, start the database in a different terminal using
+$ docker-compose -f .\docker-compose.yml up
+
 # development
 $ npm run start
 
@@ -43,31 +22,51 @@ $ npm run start:dev
 
 # production mode
 $ npm run start:prod
+
 ```
 
-## Test
+## Approach
 
-```bash
-# unit tests
-$ npm run test
+The approach I took attempted to leverage the relations available in TypeORM to be able to efficiently manage the data inside of a tree structure.
 
-# e2e tests
-$ npm run test:e2e
+For Tweets, I was able to use a closure table, which would result in efficient reads and writes of the permissions by using a recursive view to store the effective permission for each tweet with minimal overhead.
 
-# test coverage
-$ npm run test:cov
+For Groups, I was unable to use the structures offered out of the box by TypeORM as those are represented by a graph instead of a tree, which TypeORM does not support (at least for it's convenience features). Instead, I store the groups using an adjacency table, with which we can still utilize postgres' traversal features even without support in Typescript.
+
+Groups and Users were treated as seperate entities but stored within the same table to be able to utilize constraints to ensure that user_ids and group_ids were not duplicated, since the permissions would return both ids in the same array without any differentiation.
+
+## API Changes
+
+The UpdateTweetPermissions API was updated to include the tweetId of the tweet being updated. This was a necessary change so that we could update permissions on a specific object.
+
+## Project Status
+
+The project has currently implmented all endpoints except for getting paginated tweets. I had attempted to use materialized recursive views in order to do the work of determining whether a tweet could be accessed by a particular group of users up front, in order to make user experience as smooth as possible. However, TypeORM does not support the creation of recursive views, which I discovered too late into the time box allocated to this assignment. Given more time, we could set up the recursive view as a migration so that it was still accessible from within the Typescript. The views can be found below for posterities sake.
+
+```postgres
+WITH RECURSIVE tweet_list (tweet_id, effective_permission) AS (
+      	SELECT t.id, t."permissionId"
+      	  FROM tweet t
+      	 WHERE t."parentTweetId" IS NULL
+      	 UNION ALL
+      	SELECT t2.id, CASE WHEN p."inheritViewPermissions" THEN tl.effective_permission ELSE p.id END CASE
+      	  FROM tweet_list tl
+      	  JOIN tweet t2 ON tl.tweet_id = t2."parentTweetId"
+      	  JOIN "permission" p ON p.id = t2."permissionId"
+      )
+   SELECT *
+	 FROM tweet_List t
+
+WITH RECURSIVE group_tree (group_id, link) AS (
+        SELECT u.id, gl."userId_2"
+          FROM postgres.public.user u
+          JOIN user_group_ids_user gl ON u.id = gl."userId_1"
+          JOIN user_user_ids_user ul ON u.id = ul."userId_1"
+         WHERE u.type = 'Group'
+         UNION
+        SELECT g.group_id, gl2."userId_2"
+          FROM group_tree g
+          JOIN user_group_ids_user gl2 ON g.link = gl2."userId_1"
+  )
+SELECT * FROM group_tree
 ```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
