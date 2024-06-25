@@ -41,7 +41,7 @@ The UpdateTweetPermissions API was updated to include the tweetId of the tweet b
 
 ## Project Status
 
-The project has currently implmented all endpoints except for getting paginated tweets. I had attempted to use materialized recursive views in order to do the work of determining whether a tweet could be accessed by a particular group of users up front, in order to make user experience as smooth as possible. However, TypeORM does not support the creation of recursive views, which I discovered too late into the time box allocated to this assignment. Given more time, we could set up the recursive view as a migration so that it was still accessible from within the Typescript. The views can be found below for posterities sake.
+The project has currently implmented all endpoints except for getting paginated tweets. I had attempted to use materialized recursive views in order to do the work of determining whether a tweet could be accessed by a particular group of users up front, in order to make user experience as smooth as possible. However, TypeORM does not support the creation of recursive views, which I discovered too late into the time box allocated to this assignment. Given more time, we could set up the recursive view as a migration so that it was still accessible from within the Typescript. We would also create an index on the date_created column to be able to quickly sort and paginate the tweets. The views can be found below for posterities sake.
 
 ```postgres
 WITH RECURSIVE tweet_list (tweet_id, effective_permission) AS (
